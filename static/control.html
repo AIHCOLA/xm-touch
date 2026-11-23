@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>小满遥控 · 电脑端</title>
+<style>
+  :root{--bg:#0f1216;--panel:#171c22;--line:#252d36;--txt:#e6ecf3;--dim:#8492a0;--accent:#5ad1a0;}
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;background:radial-gradient(90% 60% at 50% -10%,#16202a 0%,#0f1216 60%);
+    color:var(--txt);font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:34px;}
+  .wrap{display:flex;gap:32px;align-items:flex-start;max-width:900px;width:100%;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px;}
+  .qr{flex:0 0 auto;text-align:center;}
+  .qr img{width:260px;height:260px;background:#fff;border-radius:12px;padding:10px;display:block;}
+  .qr p{margin:14px 0 0;color:var(--dim);font-size:12.5px;}
+  .info{flex:1 1 auto;min-width:0;}
+  h1{margin:0 0 4px;font-size:19px;font-weight:650;letter-spacing:.3px;}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:20px;}
+  .kv{display:flex;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+  .kv span:first-child{color:var(--dim);font-size:13px;width:96px;flex:0 0 auto;}
+  .kv span:last-child{font-size:15px;font-variant-numeric:tabular-nums;word-break:break-all;}
+  .pin{font-size:26px!important;letter-spacing:6px;color:var(--accent);font-weight:600;}
+  .state{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap;}
+  .dot{width:8px;height:8px;border-radius:50%;background:#4b5563;}
+  .dot.on{background:var(--accent);box-shadow:0 0 0 3px rgba(90,209,160,.16);animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  ol{margin:18px 0 0;padding-left:18px;color:#b9c4d0;font-size:13px;line-height:1.95;}
+  ol b{color:#e6ecf3;font-weight:600;}
+  .tip{margin-top:16px;padding:12px 14px;border-radius:12px;background:#141a20;border:1px solid var(--line);
+    color:var(--dim);font-size:12.5px;line-height:1.8;}
+  code{background:#0c1015;padding:1.5px 6px;border-radius:5px;color:#8fd7b8;font-size:12px;}
+  @media(max-width:760px){.wrap{flex-direction:column;align-items:center}.qr img{width:220px;height:220px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card qr">
+    <img id="qr" alt="扫码连接">
+    <p>手机扫码即连（同一 WiFi）</p>
+  </div>
+
+  <div class="card info">
+    <h1>小满遥控</h1>
+    <div class="sub">把手机变成这台电脑的触摸板 · 手机端零安装</div>
+
+    <div class="kv"><span>手机打开</span><span id="url">—</span></div>
+    <div class="kv"><span>配对码</span><span class="pin" id="pin">—</span></div>
+    <div class="kv"><span>连接状态</span><span>
+      <span class="state"><i class="dot" id="dot"></i><span id="cli">等待连接…</span></span>
+    </span></div>
+
+    <ol>
+      <li>手机连上和电脑<b>同一个 WiFi</b></li>
+      <li>扫上面的二维码（或手动输地址 + 配对码）</li>
+      <li><b>拖动</b>移动光标，<b>轻点</b>左键，<b>双击</b>打开，<b>双指轻点</b>右键</li>
+      <li><b>双指上下滑动</b>滚动页面，<b>长按移动</b>拖拽窗口</li>
+    </ol>
+
+    <div class="tip">
+      底部 <code>键盘</code> 可调出手机输入法直接打字；<code>更多</code> 里有 Alt+Tab、显示桌面、声音控制等快捷键。
+      如果手机连不上：检查是否同一网段，Windows 防火墙首次运行要选「允许访问」。
+    </div>
+  </div>
+</div>
+
+<script>
+  let pin = '';
+
+  async function tick(){
+    try{
+      const r = await fetch('/api/state', {cache:'no-store'});
+      const s = await r.json();
+      if (s.url !== location.origin){
+        document.getElementById('url').textContent = s.url.replace(/^https?:\/\//,'');
+      } else {
+        document.getElementById('url').textContent = location.host;
+      }
+      document.getElementById('pin').textContent = s.pin || '未启用';
+
+      if (pin !== s.pin || !document.getElementById('qr').src){
+        pin = s.pin || '';
+        const target = s.url + '/?pin=' + encodeURIComponent(pin);
+        document.getElementById('qr').src = '/qr.png?data=' + encodeURIComponent(target);
+      }
+
+      const dot = document.getElementById('dot'), cli = document.getElementById('cli');
+      if (s.clients > 0){
+        dot.classList.add('on');
+        cli.textContent = '已连接 ' + s.clients + ' 台设备';
+      } else {
+        dot.classList.remove('on');
+        cli.textContent = '等待连接…';
+      }
+    }catch(e){}
+  }
+  tick();
+  setInterval(tick, 2000);
+</script>
+</body>
+</html>
